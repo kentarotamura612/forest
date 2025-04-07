@@ -16,12 +16,11 @@ if language == "日本語":
     temperature_help = "この値を高くすると、対話がより自由で多様な表現になります。"
     max_tokens_help = "生成される応答の長さを調整します。"
     model_label = "モデルを選んでください"
-    # モデルオプションに Llama2-70B を追加
-    model_options = ["Llama2-7B", "Llama2-13B", "Llama2-70B"]
+    # モデルオプション：70B を削除
+    model_options = ["Llama2-7B", "Llama2-13B"]
     model_format = lambda name: {
         "Llama2-7B": "Llama2-7B (軽量版)",
-        "Llama2-13B": "Llama2-13B (標準版)",
-        "Llama2-70B": "Llama2-70B (高精度版)"
+        "Llama2-13B": "Llama2-13B (標準版)"
     }[name]
     expander_title = "このアプリについて"
     expander_text = (
@@ -29,12 +28,12 @@ if language == "日本語":
         "【APIキーの取得方法】\n"
         "1. [Replicate](https://replicate.com/) にアクセスし、APIキーを取得してください。"
     )
-    # システムプロンプトは余計な謝罪や確認をせず、直接回答するよう指示
+    # システムプロンプト：余計な謝罪や確認をせず、直接回答するように指示
     system_prompt = (
         "あなたは非常に有能な日本語応答モデルです。必ず日本語で回答してください。\n"
         "質問が曖昧な場合でも、不要な謝罪や文脈確認はせず、できる限り直接的に回答してください。"
     )
-    # 初期メッセージは純粋な日本語のみ
+    # 初期メッセージは日本語のみ
     initial_message = (
         "ようこそ。こちらは心の悩みや疑問に寄り添うカウンセリングアプリです。\n"
         "まずは、どのような内容でお悩みか、または知りたいことを教えてください。"
@@ -48,11 +47,10 @@ else:
     temperature_help = "A higher value makes responses more varied and creative."
     max_tokens_help = "Adjust the length of the generated response."
     model_label = "Select a model"
-    model_options = ["Llama2-7B", "Llama2-13B", "Llama2-70B"]
+    model_options = ["Llama2-7B", "Llama2-13B"]
     model_format = lambda name: {
         "Llama2-7B": "Llama2-7B: Light version",
-        "Llama2-13B": "Llama2-13B: Standard version",
-        "Llama2-70B": "Llama2-70B: High-accuracy version"
+        "Llama2-13B": "Llama2-13B: Standard version"
     }[name]
     expander_title = "About this app"
     expander_text = (
@@ -84,12 +82,10 @@ os.environ["REPLICATE_API_TOKEN"] = api_key
 temperature_value = st.sidebar.slider("Temperature", min_value=0.0, max_value=1.0, value=0.7, step=0.01, help=temperature_help)
 max_tokens_value = st.sidebar.slider("Max Tokens", min_value=100, max_value=2000, value=500, step=50, help=max_tokens_help)
 
-# モデル選択とエンドポイントの辞書
+# モデル選択とエンドポイントの辞書（70B は除外）
 model_endpoints = {
     "Llama2-7B": "a16z-infra/llama7b-v2-chat:4f0a4744c7295c024a1de15e1a63c880d3da035fa1f49bfd344fe076074c8eea",
-    "Llama2-13B": "a16z-infra/llama13b-v2-chat:df7690f1994d94e96ad9d568eac121aecf50684a0b0963b25a41cc40061269e5",
-    # 70B のエンドポイント：必要に応じて owner を追加してください
-    "Llama2-70B": "llama-2-70b-chat:2c1608e18606fad2812020dc541930f2d0495ce32eee50074220b87300bc16e1"
+    "Llama2-13B": "a16z-infra/llama13b-v2-chat:df7690f1994d94e96ad9d568eac121aecf50684a0b0963b25a41cc40061269e5"
 }
 model_choice = st.sidebar.selectbox(model_label, model_options, index=0, format_func=model_format)
 
@@ -146,27 +142,17 @@ def generate_llama2_response(prompt_input):
             dialogue += "Assistant: " + m["content"] + "\n\n"
     full_prompt = f"{dialogue}User: {prompt_input}\n\nAssistant: "
     
-    # 選択したモデルのエンドポイントを使用
     llama2_model = model_endpoints.get(model_choice)
-    
-    try:
-        response = replicate.run(
-            llama2_model,
-            input={
-                "prompt": full_prompt,
-                "temperature": temperature_value,
-                "top_p": 0.9,
-                "max_length": max_tokens_value,
-                "repetition_penalty": 1
-            }
-        )
-    except ValueError as ve:
-        if model_choice == "Llama2-70B":
-            st.error("70Bモデルの呼び出しに失敗しました。エンドポイントの指定が正しいか確認してください。")
-            return "70Bモデルの呼び出しに失敗しました。"
-        else:
-            raise ve
-
+    response = replicate.run(
+        llama2_model,
+        input={
+            "prompt": full_prompt,
+            "temperature": temperature_value,
+            "top_p": 0.9,
+            "max_length": max_tokens_value,
+            "repetition_penalty": 1
+        }
+    )
     response_list = list(response)
     return "".join(response_list).strip()
 
