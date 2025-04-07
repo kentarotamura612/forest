@@ -20,9 +20,7 @@ model_format = lambda name: {
 }[name]
 expander_title = "About this app"
 expander_text = (
-    "'Forest of Compassion' offers gentle and wise counsel to help you with any questions or concerns.\n\n"
-    "**How to get an API Key:**\n"
-    "1. Visit [Replicate](https://replicate.com/) to obtain your API key."
+    "'Forest of Compassion' offers gentle and wise counsel to help you with any questions or concerns."
 )
 system_prompt = (
     "You are a highly capable English response model. Always respond in English. "
