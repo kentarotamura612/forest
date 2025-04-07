@@ -4,7 +4,7 @@ import os
 import base64
 
 # Set page configuration
-st.set_page_config(page_title="心の森, Forest of Compassion")
+st.set_page_config(page_title="心の森")
 
 # ---------- サイドバー設定 ----------
 language = st.sidebar.selectbox("言語 / Language", ["日本語", "English"])
@@ -25,19 +25,19 @@ if language == "日本語":
     }[name]
     expander_title = "このアプリについて"
     expander_text = (
-        "『心の森, Forest of Compassion』は、あなたの心の悩みや疑問に寄り添い、\n"
-        "温かく的確な情報とアドバイスを提供するチャットアプリです。\n\n"
+        "このアプリはあなたの心の悩みや疑問に寄り添い、温かく的確なアドバイスを提供するチャットアプリです。\n\n"
         "【APIキーの取得方法】\n"
         "1. [Replicate](https://replicate.com/) にアクセスし、APIキーを取得してください。"
     )
+    # システムプロンプトは余計な謝罪や確認をせず、直接回答するよう指示
     system_prompt = (
         "あなたは非常に有能な日本語応答モデルです。必ず日本語で回答してください。\n"
-        "質問が曖昧であっても、余計な謝罪や文脈確認のメッセージは出さず、直接的かつ具体的に回答してください。"
+        "質問が曖昧な場合でも、不要な謝罪や文脈確認はせず、できる限り直接的に回答してください。"
     )
+    # 初期メッセージは純粋な日本語のみ
     initial_message = (
-        "ようこそ『心の森, Forest of Compassion』へ。\n"
-        "ここではあなたの心の悩みや疑問に寄り添い、適切な情報とアドバイスを提供します。\n"
-        "まずは、どのトピックについて知りたいか、または相談したい内容を教えてください。"
+        "ようこそ。こちらは心の悩みや疑問に寄り添うカウンセリングアプリです。\n"
+        "まずは、どのような内容でお悩みか、または知りたいことを教えてください。"
     )
     input_label = "メッセージを入力してください"
     send_button = "送信"
@@ -56,7 +56,7 @@ else:
     }[name]
     expander_title = "About this app"
     expander_text = (
-        "'Forest of Compassion' offers gentle and wise counsel to help you with any questions or worries you may have.\n\n"
+        "'Forest of Compassion' offers gentle and wise counsel to help you with any questions or concerns.\n\n"
         "**How to get an API Key:**\n"
         "1. Visit [Replicate](https://replicate.com/) to obtain your API key."
     )
@@ -66,9 +66,8 @@ else:
         "please answer directly and concretely."
     )
     initial_message = (
-        "Welcome to Forest of Compassion.\n"
-        "Here, we provide gentle and thoughtful advice to help you with your concerns.\n"
-        "Please let me know what topic you are interested in or what you'd like to discuss."
+        "Welcome. This is a counseling app that offers gentle and thoughtful advice for your concerns.\n"
+        "Please let me know what topic you're interested in or what you'd like to discuss."
     )
     input_label = "Type your message here"
     send_button = "Send"
@@ -89,6 +88,7 @@ max_tokens_value = st.sidebar.slider("Max Tokens", min_value=100, max_value=2000
 model_endpoints = {
     "Llama2-7B": "a16z-infra/llama7b-v2-chat:4f0a4744c7295c024a1de15e1a63c880d3da035fa1f49bfd344fe076074c8eea",
     "Llama2-13B": "a16z-infra/llama13b-v2-chat:df7690f1994d94e96ad9d568eac121aecf50684a0b0963b25a41cc40061269e5",
+    # 70B のエンドポイント：必要に応じて owner を追加してください
     "Llama2-70B": "llama-2-70b-chat:2c1608e18606fad2812020dc541930f2d0495ce32eee50074220b87300bc16e1"
 }
 model_choice = st.sidebar.selectbox(model_label, model_options, index=0, format_func=model_format)
@@ -121,7 +121,7 @@ def render_message(message_text, role):
 
 # ---------- ヘッダー表示 ----------
 if language == "日本語":
-    st.markdown('<div style="text-align:center; font-size:42px; font-weight:bold; margin-bottom:5px;">心の森, Forest of Compassion</div>', unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center; font-size:42px; font-weight:bold; margin-bottom:5px;">心の森</div>', unsafe_allow_html=True)
     st.markdown('<div style="text-align:center; font-size:20px; color:#555; margin-bottom:10px;">あなたの心に寄り添います</div>', unsafe_allow_html=True)
 else:
     st.markdown('<div style="text-align:center; font-size:42px; font-weight:bold; margin-bottom:5px;">Forest of Compassion</div>', unsafe_allow_html=True)
@@ -146,18 +146,24 @@ def generate_llama2_response(prompt_input):
             dialogue += "Assistant: " + m["content"] + "\n\n"
     full_prompt = f"{dialogue}User: {prompt_input}\n\nAssistant: "
     
-    # 選択したモデルのエンドポイントを使用
     llama2_model = model_endpoints.get(model_choice)
-    response = replicate.run(
-        llama2_model,
-        input={
-            "prompt": full_prompt,
-            "temperature": temperature_value,
-            "top_p": 0.9,
-            "max_length": max_tokens_value,
-            "repetition_penalty": 1
-        }
-    )
+    
+    try:
+        response = replicate.run(
+            llama2_model,
+            input={
+                "prompt": full_prompt,
+                "temperature": temperature_value,
+                "top_p": 0.9,
+                "max_length": max_tokens_value,
+                "repetition_penalty": 1
+            }
+        )
+    except ValueError as ve:
+        # 70B のエンドポイントでエラーが出た場合、ユーザーにエラーメッセージを表示
+        st.error("70Bモデルの呼び出しに失敗しました。エンドポイントの指定が正しいか確認してください。")
+        raise ve
+
     response_list = list(response)
     return "".join(response_list).strip()
 
