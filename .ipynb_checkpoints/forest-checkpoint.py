@@ -146,6 +146,7 @@ def generate_llama2_response(prompt_input):
             dialogue += "Assistant: " + m["content"] + "\n\n"
     full_prompt = f"{dialogue}User: {prompt_input}\n\nAssistant: "
     
+    # 選択したモデルのエンドポイントを使用
     llama2_model = model_endpoints.get(model_choice)
     
     try:
@@ -160,9 +161,11 @@ def generate_llama2_response(prompt_input):
             }
         )
     except ValueError as ve:
-        # 70B のエンドポイントでエラーが出た場合、ユーザーにエラーメッセージを表示
-        st.error("70Bモデルの呼び出しに失敗しました。エンドポイントの指定が正しいか確認してください。")
-        raise ve
+        if model_choice == "Llama2-70B":
+            st.error("70Bモデルの呼び出しに失敗しました。エンドポイントの指定が正しいか確認してください。")
+            return "70Bモデルの呼び出しに失敗しました。"
+        else:
+            raise ve
 
     response_list = list(response)
     return "".join(response_list).strip()
