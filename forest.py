@@ -16,23 +16,29 @@ if language == "日本語":
     temperature_help = "この値を高くすると、対話がより自由で多様な表現になります。"
     max_tokens_help = "生成される応答の長さを調整します。"
     model_label = "モデルを選んでください"
-    model_options = ["Llama2-7B", "Llama2-13B"]
+    # モデルオプションに Llama2-70B を追加
+    model_options = ["Llama2-7B", "Llama2-13B", "Llama2-70B"]
     model_format = lambda name: {
         "Llama2-7B": "Llama2-7B (軽量版)",
-        "Llama2-13B": "Llama2-13B (標準版)"
+        "Llama2-13B": "Llama2-13B (標準版)",
+        "Llama2-70B": "Llama2-70B (高精度版)"
     }[name]
     expander_title = "このアプリについて"
     expander_text = (
-        "『心の森, Forest of Compassion』は、あなたの心の悩みや疑問に対して、"
-        "優しく、温かい言葉で寄り添います。\n\n"
+        "『心の森, Forest of Compassion』は、あなたの心の悩みや疑問に寄り添い、\n"
+        "温かく的確な情報とアドバイスを提供するチャットアプリです。\n\n"
         "【APIキーの取得方法】\n"
         "1. [Replicate](https://replicate.com/) にアクセスし、APIキーを取得してください。"
     )
     system_prompt = (
-        "あなたは優しく賢いカウンセラーです。全ての質問に対して日本語で丁寧に回答してください。"
-        "どんなお悩みでも、安心してご相談いただけるよう、心に寄り添った返答を行ってください。"
+        "あなたは非常に有能な日本語応答モデルです。必ず日本語で回答してください。\n"
+        "質問が曖昧であっても、余計な謝罪や文脈確認のメッセージは出さず、直接的かつ具体的に回答してください。"
     )
-    initial_message = "なんでも相談してください。"
+    initial_message = (
+        "ようこそ『心の森, Forest of Compassion』へ。\n"
+        "ここではあなたの心の悩みや疑問に寄り添い、適切な情報とアドバイスを提供します。\n"
+        "まずは、どのトピックについて知りたいか、または相談したい内容を教えてください。"
+    )
     input_label = "メッセージを入力してください"
     send_button = "送信"
 else:
@@ -42,10 +48,11 @@ else:
     temperature_help = "A higher value makes responses more varied and creative."
     max_tokens_help = "Adjust the length of the generated response."
     model_label = "Select a model"
-    model_options = ["Llama2-7B", "Llama2-13B"]
+    model_options = ["Llama2-7B", "Llama2-13B", "Llama2-70B"]
     model_format = lambda name: {
         "Llama2-7B": "Llama2-7B: Light version",
-        "Llama2-13B": "Llama2-13B: Standard version"
+        "Llama2-13B": "Llama2-13B: Standard version",
+        "Llama2-70B": "Llama2-70B: High-accuracy version"
     }[name]
     expander_title = "About this app"
     expander_text = (
@@ -54,10 +61,15 @@ else:
         "1. Visit [Replicate](https://replicate.com/) to obtain your API key."
     )
     system_prompt = (
-        "You are a gentle and wise counselor. Please answer all questions in English with care and empathy. "
-        "Provide comforting and thoughtful responses to any query."
+        "You are a highly capable English response model. Always respond in English.\n"
+        "Even if the user's question is ambiguous, do not include unnecessary apologies or context confirmation messages; "
+        "please answer directly and concretely."
     )
-    initial_message = "Feel free to ask me anything."
+    initial_message = (
+        "Welcome to Forest of Compassion.\n"
+        "Here, we provide gentle and thoughtful advice to help you with your concerns.\n"
+        "Please let me know what topic you are interested in or what you'd like to discuss."
+    )
     input_label = "Type your message here"
     send_button = "Send"
 
@@ -73,7 +85,12 @@ os.environ["REPLICATE_API_TOKEN"] = api_key
 temperature_value = st.sidebar.slider("Temperature", min_value=0.0, max_value=1.0, value=0.7, step=0.01, help=temperature_help)
 max_tokens_value = st.sidebar.slider("Max Tokens", min_value=100, max_value=2000, value=500, step=50, help=max_tokens_help)
 
-# モデル選択
+# モデル選択とエンドポイントの辞書
+model_endpoints = {
+    "Llama2-7B": "a16z-infra/llama7b-v2-chat:4f0a4744c7295c024a1de15e1a63c880d3da035fa1f49bfd344fe076074c8eea",
+    "Llama2-13B": "a16z-infra/llama13b-v2-chat:df7690f1994d94e96ad9d568eac121aecf50684a0b0963b25a41cc40061269e5",
+    "Llama2-70B": "llama-2-70b-chat:2c1608e18606fad2812020dc541930f2d0495ce32eee50074220b87300bc16e1"
+}
 model_choice = st.sidebar.selectbox(model_label, model_options, index=0, format_func=model_format)
 
 # アプリの説明
@@ -120,6 +137,7 @@ def clear_chat_history():
 st.sidebar.button("Clear Chat History", on_click=clear_chat_history)
 
 def generate_llama2_response(prompt_input):
+    # 会話履歴とシステムプロンプトを連結
     dialogue = system_prompt + "\n\n"
     for m in st.session_state.messages:
         if m["role"] == "user":
@@ -128,11 +146,8 @@ def generate_llama2_response(prompt_input):
             dialogue += "Assistant: " + m["content"] + "\n\n"
     full_prompt = f"{dialogue}User: {prompt_input}\n\nAssistant: "
     
-    if model_choice == "Llama2-7B":
-        llama2_model = "a16z-infra/llama7b-v2-chat:4f0a4744c7295c024a1de15e1a63c880d3da035fa1f49bfd344fe076074c8eea"
-    else:
-        llama2_model = "a16z-infra/llama13b-v2-chat:df7690f1994d94e96ad9d568eac121aecf50684a0b0963b25a41cc40061269e5"
-    
+    # 選択したモデルのエンドポイントを使用
+    llama2_model = model_endpoints.get(model_choice)
     response = replicate.run(
         llama2_model,
         input={
@@ -146,6 +161,7 @@ def generate_llama2_response(prompt_input):
     response_list = list(response)
     return "".join(response_list).strip()
 
+# ---------- ユーザー入力と応答生成 ----------
 prompt = st.chat_input(disabled=not api_key)
 if prompt:
     st.session_state.messages.append({"role": "user", "content": prompt})
@@ -158,9 +174,6 @@ if st.session_state.messages[-1]["role"] != "assistant":
         with st.spinner("Thinking..."):
             response_text = generate_llama2_response(prompt)
             placeholder = st.empty()
-            full_response = ""
-            # response_text は文字列なので、直接表示
-            full_response = response_text
-            placeholder.markdown(full_response)
-    st.session_state.messages.append({"role": "assistant", "content": full_response})
+            placeholder.markdown(response_text)
+    st.session_state.messages.append({"role": "assistant", "content": response_text})
     st.rerun()
