@@ -4,10 +4,11 @@ import os
 import base64
 
 # Set page configuration
-st.set_page_config(page_title="心の森")
+st.set_page_config(page_title="Forest of Compassion")
 
 # ---------- サイドバー設定 ----------
-language = st.sidebar.selectbox("言語 / Language", ["日本語", "English"])
+language = "English"
+# st.sidebar.selectbox("言語 / Language", ["日本語", "English"])
 
 if language == "日本語":
     api_key_label = "Replicate APIキー"
