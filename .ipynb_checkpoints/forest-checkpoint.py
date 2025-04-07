@@ -6,72 +6,37 @@ import base64
 # Set page configuration
 st.set_page_config(page_title="Forest of Compassion")
 
-# ---------- サイドバー設定 ----------
-language = "English"
-# st.sidebar.selectbox("言語 / Language", ["日本語", "English"])
+# ---------- Sidebar Settings ----------
+api_key_label = "Replicate API Key"
+api_key_placeholder = "r8_..."
+api_key_error = "Please enter your API key."
+temperature_help = "A higher temperature makes responses more creative."
+max_tokens_help = "Adjust the length of the generated response."
+model_label = "Select a model"
+model_options = ["Llama2-7B", "Llama2-13B"]
+model_format = lambda name: {
+    "Llama2-7B": "Llama2-7B: Light version",
+    "Llama2-13B": "Llama2-13B: Standard version"
+}[name]
+expander_title = "About this app"
+expander_text = (
+    "'Forest of Compassion' offers gentle and wise counsel to help you with any questions or concerns.\n\n"
+    "**How to get an API Key:**\n"
+    "1. Visit [Replicate](https://replicate.com/) to obtain your API key."
+)
+system_prompt = (
+    "You are a highly capable English response model. Always respond in English. "
+    "If the user's question is ambiguous, do not include unnecessary apologies or requests for context; "
+    "please answer directly and concretely."
+)
+initial_message = (
+    "Welcome to Forest of Compassion. Here, we provide gentle and thoughtful advice for your concerns.\n"
+    "Please let me know what topic you're interested in or what you'd like to discuss."
+)
+input_label = "Type your message here"
+send_button = "Send"
 
-if language == "日本語":
-    api_key_label = "Replicate APIキー"
-    api_key_placeholder = "r8_..."
-    api_key_error = "APIキーを入力してください。"
-    temperature_help = "この値を高くすると、対話がより自由で多様な表現になります。"
-    max_tokens_help = "生成される応答の長さを調整します。"
-    model_label = "モデルを選んでください"
-    # モデルオプション：70B を削除
-    model_options = ["Llama2-7B", "Llama2-13B"]
-    model_format = lambda name: {
-        "Llama2-7B": "Llama2-7B (軽量版)",
-        "Llama2-13B": "Llama2-13B (標準版)"
-    }[name]
-    expander_title = "このアプリについて"
-    expander_text = (
-        "このアプリはあなたの心の悩みや疑問に寄り添い、温かく的確なアドバイスを提供するチャットアプリです。\n\n"
-        "【APIキーの取得方法】\n"
-        "1. [Replicate](https://replicate.com/) にアクセスし、APIキーを取得してください。"
-    )
-    # システムプロンプト：余計な謝罪や確認をせず、直接回答するように指示
-    system_prompt = (
-        "あなたは非常に有能な日本語応答モデルです。必ず日本語で回答してください。\n"
-        "質問が曖昧な場合でも、不要な謝罪や文脈確認はせず、できる限り直接的に回答してください。"
-    )
-    # 初期メッセージは日本語のみ
-    initial_message = (
-        "ようこそ。こちらは心の悩みや疑問に寄り添うカウンセリングアプリです。\n"
-        "まずは、どのような内容でお悩みか、または知りたいことを教えてください。"
-    )
-    input_label = "メッセージを入力してください"
-    send_button = "送信"
-else:
-    api_key_label = "Replicate API Key"
-    api_key_placeholder = "r8_..."
-    api_key_error = "Please enter your API key."
-    temperature_help = "A higher value makes responses more varied and creative."
-    max_tokens_help = "Adjust the length of the generated response."
-    model_label = "Select a model"
-    model_options = ["Llama2-7B", "Llama2-13B"]
-    model_format = lambda name: {
-        "Llama2-7B": "Llama2-7B: Light version",
-        "Llama2-13B": "Llama2-13B: Standard version"
-    }[name]
-    expander_title = "About this app"
-    expander_text = (
-        "'Forest of Compassion' offers gentle and wise counsel to help you with any questions or concerns.\n\n"
-        "**How to get an API Key:**\n"
-        "1. Visit [Replicate](https://replicate.com/) to obtain your API key."
-    )
-    system_prompt = (
-        "You are a highly capable English response model. Always respond in English.\n"
-        "Even if the user's question is ambiguous, do not include unnecessary apologies or context confirmation messages; "
-        "please answer directly and concretely."
-    )
-    initial_message = (
-        "Welcome. This is a counseling app that offers gentle and thoughtful advice for your concerns.\n"
-        "Please let me know what topic you're interested in or what you'd like to discuss."
-    )
-    input_label = "Type your message here"
-    send_button = "Send"
-
-# APIキー取得：st.secrets に設定済みならそれを利用、なければサイドバーから入力
+# Get API key from st.secrets if available, otherwise from the sidebar input
 if "REPLICATE_API_TOKEN" in st.secrets:
     api_key = st.secrets["REPLICATE_API_TOKEN"]
 else:
@@ -79,22 +44,22 @@ else:
 
 os.environ["REPLICATE_API_TOKEN"] = api_key
 
-# パラメータ設定
+# Parameter Settings
 temperature_value = st.sidebar.slider("Temperature", min_value=0.0, max_value=1.0, value=0.7, step=0.01, help=temperature_help)
 max_tokens_value = st.sidebar.slider("Max Tokens", min_value=100, max_value=2000, value=500, step=50, help=max_tokens_help)
 
-# モデル選択とエンドポイントの辞書（70B は除外）
+# Model selection and endpoints dictionary
 model_endpoints = {
     "Llama2-7B": "a16z-infra/llama7b-v2-chat:4f0a4744c7295c024a1de15e1a63c880d3da035fa1f49bfd344fe076074c8eea",
     "Llama2-13B": "a16z-infra/llama13b-v2-chat:df7690f1994d94e96ad9d568eac121aecf50684a0b0963b25a41cc40061269e5"
 }
 model_choice = st.sidebar.selectbox(model_label, model_options, index=0, format_func=model_format)
 
-# アプリの説明
+# App Description
 with st.sidebar.expander(expander_title):
     st.write(expander_text)
 
-# ---------- チャット初期化 ----------
+# ---------- Chat Initialization ----------
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "assistant", "content": initial_message}]
 
@@ -104,7 +69,7 @@ def get_image_base64(image_path):
 
 def render_message(message_text, role):
     is_user = (role == "user")
-    icon_path = "images/user_icon.png" if is_user else "images/kagami_icon.png"
+    icon_path = "images/user_icon.png" if is_user else "images/assistant_icon.png"
     alignment = "flex-end" if is_user else "flex-start"
     bg_color = "#e6f7e6" if is_user else "#ffffff"
     st.markdown(f"""
@@ -116,15 +81,11 @@ def render_message(message_text, role):
         </div>
         """, unsafe_allow_html=True)
 
-# ---------- ヘッダー表示 ----------
-if language == "日本語":
-    st.markdown('<div style="text-align:center; font-size:42px; font-weight:bold; margin-bottom:5px;">心の森</div>', unsafe_allow_html=True)
-    st.markdown('<div style="text-align:center; font-size:20px; color:#555; margin-bottom:10px;">あなたの心に寄り添います</div>', unsafe_allow_html=True)
-else:
-    st.markdown('<div style="text-align:center; font-size:42px; font-weight:bold; margin-bottom:5px;">Forest of Compassion</div>', unsafe_allow_html=True)
-    st.markdown('<div style="text-align:center; font-size:20px; color:#555; margin-bottom:10px;">Providing gentle and wise counsel for your soul</div>', unsafe_allow_html=True)
+# ---------- Header Display ----------
+st.markdown('<div style="text-align:center; font-size:42px; font-weight:bold; margin-bottom:5px;">Forest of Compassion</div>', unsafe_allow_html=True)
+st.markdown('<div style="text-align:center; font-size:20px; color:#555; margin-bottom:10px;">Providing gentle and wise counsel for your soul</div>', unsafe_allow_html=True)
 
-# チャット履歴の表示
+# Display chat history
 for msg in st.session_state.messages:
     if msg["role"] != "system":
         render_message(msg["content"], msg["role"])
@@ -134,7 +95,7 @@ def clear_chat_history():
 st.sidebar.button("Clear Chat History", on_click=clear_chat_history)
 
 def generate_llama2_response(prompt_input):
-    # 会話履歴とシステムプロンプトを連結
+    # Concatenate system prompt and conversation history
     dialogue = system_prompt + "\n\n"
     for m in st.session_state.messages:
         if m["role"] == "user":
@@ -157,7 +118,7 @@ def generate_llama2_response(prompt_input):
     response_list = list(response)
     return "".join(response_list).strip()
 
-# ---------- ユーザー入力と応答生成 ----------
+# ---------- User Input and Response Generation ----------
 prompt = st.chat_input(disabled=not api_key)
 if prompt:
     st.session_state.messages.append({"role": "user", "content": prompt})
