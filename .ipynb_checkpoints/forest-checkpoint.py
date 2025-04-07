@@ -23,18 +23,16 @@ if language == "日本語":
     }[name]
     expander_title = "このアプリについて"
     expander_text = (
-        "このアプリはセルフコンパッションに基づく対話を提供します。\n"
-        "『心の森, Forest of Compassion』は、あなたの内面に寄り添い、優しさと癒しをお届けします。\n\n"
+        "『心の森, Forest of Compassion』は、あなたの心の悩みや疑問に対して、"
+        "優しく、温かい言葉で寄り添います。\n\n"
         "【APIキーの取得方法】\n"
         "1. [Replicate](https://replicate.com/) にアクセスし、APIキーを取得してください。"
     )
     system_prompt = (
-        "あなたはセルフコンパッションの専門家です。まず、ユーザーにお名前を尋ね、その名前を使って対話を進めてください。"
-        "以降の会話では、ユーザーの回答が一度に一つの項目に絞られるよう、各質問は必ず単一の回答のみを求める形式で1つずつ提示してください。"
-        "ユーザーが体験を語る際は、具体的な内容に基づいて、安心できるように1つずつ丁寧な質問を行ってください。"
-        "最後に温かい言葉で会話を締め、ユーザーに安心感を提供してください。"
+        "あなたは優しく賢いカウンセラーです。全ての質問に対して日本語で丁寧に回答してください。"
+        "どんなお悩みでも、安心してご相談いただけるよう、心に寄り添った返答を行ってください。"
     )
-    initial_message = "こんにちは。お名前を教えてください。"
+    initial_message = "なんでも相談してください。"
     input_label = "メッセージを入力してください"
     send_button = "送信"
 else:
@@ -51,28 +49,24 @@ else:
     }[name]
     expander_title = "About this app"
     expander_text = (
-        "This app offers a self-compassion based conversation experience.\n"
-        "'Forest of Compassion' is designed to bring you warmth and healing by connecting with your inner self.\n\n"
+        "'Forest of Compassion' offers gentle and wise counsel to help you with any questions or worries you may have.\n\n"
         "**How to get an API Key:**\n"
         "1. Visit [Replicate](https://replicate.com/) to obtain your API key."
     )
     system_prompt = (
-        "You are an expert in self-compassion. Begin by asking the user for their name and refer to them by that name throughout the conversation. "
-        "Ensure that every question you ask requires only one single answer at a time. "
-        "When the user shares experiences, ask one concrete question based on the details provided, one at a time. "
-        "Conclude the conversation with warm, reassuring words that offer comfort and security."
+        "You are a gentle and wise counselor. Please answer all questions in English with care and empathy. "
+        "Provide comforting and thoughtful responses to any query."
     )
-    initial_message = "Hello. Could you please tell me your name?"
+    initial_message = "Feel free to ask me anything."
     input_label = "Type your message here"
     send_button = "Send"
 
-# APIキー取得：st.secrets に設定済みならそれを利用、なければサイドバー入力
+# APIキー取得：st.secrets に設定済みならそれを利用、なければサイドバーから入力
 if "REPLICATE_API_TOKEN" in st.secrets:
     api_key = st.secrets["REPLICATE_API_TOKEN"]
 else:
     api_key = st.sidebar.text_input(api_key_label, type="password", placeholder=api_key_placeholder)
 
-# Replicate APIキーを環境変数に設定
 os.environ["REPLICATE_API_TOKEN"] = api_key
 
 # パラメータ設定
@@ -90,54 +84,50 @@ with st.sidebar.expander(expander_title):
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "assistant", "content": initial_message}]
 
-# ---------- チャット表示用関数 ----------
 def get_image_base64(image_path):
     with open(image_path, "rb") as f:
         return base64.b64encode(f.read()).decode()
 
 def render_message(message_text, role):
-    is_user = role == "user"
+    is_user = (role == "user")
     icon_path = "images/user_icon.png" if is_user else "images/kagami_icon.png"
     alignment = "flex-end" if is_user else "flex-start"
     bg_color = "#e6f7e6" if is_user else "#ffffff"
-    st.markdown(
-        f"""
+    st.markdown(f"""
         <div style='display: flex; justify-content: {alignment}; margin-bottom: 1rem;'>
             <div style='display: flex; align-items: flex-start; max-width: 80%; background-color: {bg_color}; padding: 0.75rem 1rem; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.1);'>
                 <img src='data:image/png;base64,{get_image_base64(icon_path)}' width='36' style='margin-right: 0.75rem; border-radius: 50%;' />
                 <div style='font-size: 16px; color: #000;'>{message_text}</div>
             </div>
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        """, unsafe_allow_html=True)
 
 # ---------- ヘッダー表示 ----------
-st.markdown('<div style="text-align:center; font-size:42px; font-weight:bold; margin-bottom:5px;">心の森, Forest of Compassion</div>', unsafe_allow_html=True)
-subtitle = "もう1人の優しい自分に出会う" if language == "日本語" else "Meet your kind inner self"
-st.markdown(f'<div style="text-align:center; font-size:20px; color:#555; margin-bottom:10px;">{subtitle}</div>', unsafe_allow_html=True)
+if language == "日本語":
+    st.markdown('<div style="text-align:center; font-size:42px; font-weight:bold; margin-bottom:5px;">心の森, Forest of Compassion</div>', unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center; font-size:20px; color:#555; margin-bottom:10px;">あなたの心に寄り添います</div>', unsafe_allow_html=True)
+else:
+    st.markdown('<div style="text-align:center; font-size:42px; font-weight:bold; margin-bottom:5px;">Forest of Compassion</div>', unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center; font-size:20px; color:#555; margin-bottom:10px;">Providing gentle and wise counsel for your soul</div>', unsafe_allow_html=True)
 
 # チャット履歴の表示
 for msg in st.session_state.messages:
     if msg["role"] != "system":
         render_message(msg["content"], msg["role"])
 
-# Clear Chat History ボタン
 def clear_chat_history():
     st.session_state.messages = [{"role": "assistant", "content": initial_message}]
 st.sidebar.button("Clear Chat History", on_click=clear_chat_history)
 
-# ---------- Llama2 応答生成関数 ----------
 def generate_llama2_response(prompt_input):
-    dialogue = "You are a helpful assistant. You do not respond as 'User' or pretend to be 'User'. You only respond once as 'Assistant'.\n\n"
+    dialogue = system_prompt + "\n\n"
     for m in st.session_state.messages:
         if m["role"] == "user":
-            dialogue += f"User: {m['content']}\n\n"
+            dialogue += "User: " + m["content"] + "\n\n"
         else:
-            dialogue += f"Assistant: {m['content']}\n\n"
+            dialogue += "Assistant: " + m["content"] + "\n\n"
     full_prompt = f"{dialogue}User: {prompt_input}\n\nAssistant: "
     
-    # モデル選択に応じたエンドポイント
     if model_choice == "Llama2-7B":
         llama2_model = "a16z-infra/llama7b-v2-chat:4f0a4744c7295c024a1de15e1a63c880d3da035fa1f49bfd344fe076074c8eea"
     else:
@@ -148,36 +138,29 @@ def generate_llama2_response(prompt_input):
         input={
             "prompt": full_prompt,
             "temperature": temperature_value,
-            "top_p": 0.9,  # 必要に応じて調整
+            "top_p": 0.9,
             "max_length": max_tokens_value,
             "repetition_penalty": 1
         }
     )
-    # generator の場合、リストに変換してから連結
     response_list = list(response)
     return "".join(response_list).strip()
 
-# ---------- ユーザー入力と応答生成 ----------
 prompt = st.chat_input(disabled=not api_key)
 if prompt:
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.write(prompt)
-    # ユーザー入力後、画面を更新
     st.rerun()
 
-# 直前のメッセージがアシスタントでない場合、応答を生成
 if st.session_state.messages[-1]["role"] != "assistant":
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             response_text = generate_llama2_response(prompt)
             placeholder = st.empty()
             full_response = ""
-            # 応答が複数の部分に分かれている場合は連結
-            for part in response_text:
-                full_response += part
-                placeholder.markdown(full_response)
+            # response_text は文字列なので、直接表示
+            full_response = response_text
             placeholder.markdown(full_response)
     st.session_state.messages.append({"role": "assistant", "content": full_response})
     st.rerun()
-
